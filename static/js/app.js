@@ -17,7 +17,8 @@ $(function() {
     alert("Error: Your browser does not support web sockets.")
   } else {
     //API with the server
-    socket = new WebSocket("ws:/localhost:8080/room");
+    var addr = $("#address").val();
+    socket = new WebSocket(addr);
     socket.onclose = function() {
       alert("Connection has been closed.");
     }
