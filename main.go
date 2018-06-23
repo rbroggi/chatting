@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"github.com/rbroggi/chatting/trace"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"text/template"
@@ -11,8 +13,12 @@ import (
 
 func main() {
 	addr := flag.String("addr", ":8080", "The address of the application.")
+	verbose := flag.Bool("v", false, "Set verbose mode - tracing active")
 	flag.Parse()
 	r := newRoom()
+	if *verbose {
+		r.tracer = trace.New(os.Stdout)
+	}
 	http.Handle("/", &templateHandler{filename: "chat.html"})
 	//Serve static contents
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
