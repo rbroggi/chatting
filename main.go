@@ -7,7 +7,13 @@ import "sync"
 import "text/template"
 
 func main() {
-	_ = http.ListenAndServe(":8080", &templateHandler{filename: "chat.html"})
+	r := newRoom()
+	http.Handle("/", &templateHandler{filename: "chat.html"})
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	http.Handle("/room", r)
+	go r.run()
+	//start web server
+	_ = http.ListenAndServe(":8080", nil)
 	log.Fatal("Server mux failed")
 }
 
