@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/gomniauth"
 	"github.com/stretchr/gomniauth/providers/github"
 	"github.com/stretchr/gomniauth/providers/google"
+	"github.com/stretchr/objx"
 	"log"
 	"net/http"
 	"os"
@@ -91,37 +92,11 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t.once.Do(func() {
 		t.templ = template.Must(template.ParseFiles(filepath.Join("templates", t.filename)))
 	})
-	t.templ.Execute(w, r)
-}
-
-//loginHandler handles the third-party login process.
-//route format: /auth/{action}/{provider}
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	segs := strings.Split(r.URL.Path, "/")
-	if len(segs) < 3 {
-		w.WriteHeader(http.StatusNotFound)
-		return
+	data := map[string]interface{}{
+		"Host": r.Host,
 	}
-	action := segs[2]
-	provider := segs[3]
-
-	switch action {
-	case "login":
-		provider, err := gomniauth.Provider(provider)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error when trying to get provider for %s:%s", provider, err), http.StatusInternalServerError)
-			return
-		}
-		loginUrl, err := provider.GetBeginAuthURL(nil, nil)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error when trying to GetBeginAuthURL for %s:%s", provider, err), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Location", loginUrl)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-	default:
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Auth action %s not supported", action)
+	if authCookie, err := r.Cookie("auth"); err == nil {
+		data["UserData"] = objx.MustFromBase64(authCookie.Value)
 	}
-
+	t.templ.Execute(w, data)
 }
