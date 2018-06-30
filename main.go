@@ -95,6 +95,7 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"Host": r.Host,
 	}
+	//Decode value in the "auth" cookie sent by the client
 	if authCookie, err := r.Cookie("auth"); err == nil {
 		data["UserData"] = objx.MustFromBase64(authCookie.Value)
 	}

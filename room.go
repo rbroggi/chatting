@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/stretchr/objx"
 	"github.com/gorilla/websocket"
 	"github.com/rbroggi/chatting/trace"
 	"log"
@@ -17,7 +18,7 @@ var upgrader = &websocket.Upgrader{ReadBufferSize: socketBufferSize, WriteBuffer
 type room struct {
 	//forward is a channel that handles all incoming messages for
 	//this room and send them to all the subscribed clients
-	forward chan []byte
+	forward chan *message 
 
 	//clients whishing to join the room - for sync purpose
 	join chan *client
@@ -34,7 +35,7 @@ type room struct {
 
 func newRoom() *room {
 	return &room{
-		forward: make(chan []byte),
+		forward: make(chan *message),
 		join:    make(chan *client),
 		leave:   make(chan *client),
 		clients: make(map[*client]bool),
@@ -58,7 +59,7 @@ func (r *room) run() {
 			r.tracer.Trace("Client left")
 		//incoming message
 		case msg := <-r.forward:
-			r.tracer.Trace("Message received: ", string(msg))
+			r.tracer.Trace("Message received: ", msg.Message)
 			//forward message to all clients in the room
 			for client := range r.clients {
 				client.send <- msg
@@ -75,11 +76,17 @@ func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Fatal("ServeHTTP: ", err)
 		return
 	}
+	authCookie, err := req.Cookie("auth")
+	if err != nil {
+		log.Fatal("Failed to get auth cookie: ", err)
+		return
+	}
 
 	client := &client{
 		socket: socket,
-		send:   make(chan []byte),
+		send:   make(chan *message, messageBufferSize),
 		room:   r,
+		userData: objx.MustFromBase64(authCookie.Value),
 	}
 
 	r.join <- client
