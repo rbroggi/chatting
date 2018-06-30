@@ -2,7 +2,6 @@ $(function() {
   var socket = null;
   var msgBox = $("#chatbox textarea");
   var messages = $("#messages");
-  var timeRegex = /.*([0-9]{2}:[0-9]{2}:[0-9]{2}).*/g;
   $("#chatbox").submit( function() {
     if (!msgBox.val()) return false;
     if (!socket) {
@@ -27,6 +26,8 @@ $(function() {
     }
     socket.onmessage = function(e) {
       var msg = JSON.parse(e.data);
+      console.log("Raw time JSON field" + msg.When)
+      var timeRegex = /.*([0-9]{2}:[0-9]{2}:[0-9]{2}).*/g;
       var time = timeRegex.exec(msg.When)[1];
       messages.append(
         $("<li>").append(

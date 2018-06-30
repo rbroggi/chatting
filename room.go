@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/stretchr/objx"
-	"github.com/gorilla/websocket"
-	"github.com/rbroggi/chatting/trace"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/websocket"
+	"github.com/rbroggi/chatting/trace"
+	"github.com/stretchr/objx"
 )
 
 const (
@@ -18,7 +19,7 @@ var upgrader = &websocket.Upgrader{ReadBufferSize: socketBufferSize, WriteBuffer
 type room struct {
 	//forward is a channel that handles all incoming messages for
 	//this room and send them to all the subscribed clients
-	forward chan *message 
+	forward chan *message
 
 	//clients whishing to join the room - for sync purpose
 	join chan *client
@@ -31,15 +32,19 @@ type room struct {
 
 	//tracer will receive tracing info of activity in the room
 	tracer trace.Tracer
+
+	//avatar is how avatar information will be obtained
+	avatar Avatar
 }
 
-func newRoom() *room {
+func newRoom(avatar Avatar) *room {
 	return &room{
 		forward: make(chan *message),
 		join:    make(chan *client),
 		leave:   make(chan *client),
 		clients: make(map[*client]bool),
 		tracer:  trace.Off(),
+		avatar:  avatar,
 	}
 }
 
@@ -83,9 +88,9 @@ func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	client := &client{
-		socket: socket,
-		send:   make(chan *message, messageBufferSize),
-		room:   r,
+		socket:   socket,
+		send:     make(chan *message, messageBufferSize),
+		room:     r,
 		userData: objx.MustFromBase64(authCookie.Value),
 	}
 

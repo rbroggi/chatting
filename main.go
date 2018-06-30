@@ -24,7 +24,7 @@ func main() {
 	verbose := flag.Bool("v", false, "Set verbose mode - tracing active")
 	credFilePath := flag.String("cred_file", "credentials.txt", "credentials filename with format provider|app_key|app_secret on each row. providers are google and github")
 	flag.Parse()
-	r := newRoom()
+	r := newRoom(UseGravatar)
 	if *verbose {
 		r.tracer = trace.New(os.Stdout)
 	}
