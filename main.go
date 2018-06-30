@@ -4,11 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/rbroggi/chatting/trace"
-	"github.com/stretchr/gomniauth"
-	"github.com/stretchr/gomniauth/providers/github"
-	"github.com/stretchr/gomniauth/providers/google"
-	"github.com/stretchr/objx"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +11,12 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+
+	"github.com/rbroggi/chatting/trace"
+	"github.com/stretchr/gomniauth"
+	"github.com/stretchr/gomniauth/providers/github"
+	"github.com/stretchr/gomniauth/providers/google"
+	"github.com/stretchr/objx"
 )
 
 func main() {
@@ -41,6 +42,7 @@ func main() {
 	//Endpoint to chat must autheticate first
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
+	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/auth/", loginHandler)
 	http.Handle("/room", r)
 	//start the room

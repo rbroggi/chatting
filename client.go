@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,11 +26,14 @@ func (c *client) read() {
 		var msg *message
 		err := c.socket.ReadJSON(&msg)
 		if err != nil {
-			fmt.Errorf("Error while parsing JSON data incoming from socket", err)
+			log.Printf("Error while parsing JSON data incoming from socket: %v", err)
 			return
 		}
 		msg.When = time.Now()
 		msg.Name = c.userData["name"].(string)
+		if avatarURL, ok := c.userData["avatar_ulr"]; ok {
+			msg.AvatarURL = avatarURL.(string)
+		}
 		c.room.forward <- msg
 	}
 }
@@ -41,7 +44,7 @@ func (c *client) write() {
 	for msg := range c.send {
 		err := c.socket.WriteJSON(msg)
 		if err != nil {
-			fmt.Errorf("Error while serializing msg data to socket", err)
+			log.Fatal("Error while serializing msg data to socket", err)
 			return
 		}
 	}

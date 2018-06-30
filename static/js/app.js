@@ -30,6 +30,10 @@ $(function() {
       var time = timeRegex.exec(msg.When)[1];
       messages.append(
         $("<li>").append(
+          $("<img>").attr("title", msg.Name).css({
+            width:50,
+            verticalAlign:"middle"
+          }).attr("src", msg.AvatarURL),
           $("<span>").text(time + " - "),
           $("<strong>").text(msg.Name + ": "),
           $("<span>").text(msg.Message)
