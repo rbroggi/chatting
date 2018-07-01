@@ -1,6 +1,12 @@
 package main
 
-import "testing"
+import (
+	"crypto/md5"
+	"fmt"
+	"io"
+	"strings"
+	"testing"
+)
 
 func TestAuthAvatar(t *testing.T) {
 	//when declaring and no assign variable is nil
@@ -31,7 +37,10 @@ func TestAuthAvatar(t *testing.T) {
 func TestGravatarAvatar(t *testing.T) {
 	var gravatar GravatarAvatar
 	client := new(client)
-	client.userData = map[string]interface{}{"email": "MyEmailAddress@example.com"}
+	m := md5.New()
+	io.WriteString(m, strings.ToLower("MyEmailAddress@example.com"))
+	userID := fmt.Sprintf("%x", m.Sum(nil))
+	client.userData = map[string]interface{}{"userid": userID}
 	url, err := gravatar.GetAvatarURL(client)
 	if err != nil {
 		t.Error("Gravatar.GetAvatarURL should not return an error")
