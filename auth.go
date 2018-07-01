@@ -4,12 +4,32 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/stretchr/gomniauth"
+	gmncommon "github.com/stretchr/gomniauth/common"
 	"github.com/stretchr/objx"
 )
+
+//ChatUser interface is abstraction of our User
+type ChatUser interface {
+	//UniqueID retrieves User unique id
+	UniqueID() string
+
+	//AvatarURL retrieves User avatar URL
+	AvatarURL() string
+}
+
+type chatUser struct {
+	gmncommon.User
+	uniqueID string
+}
+
+func (u chatUser) UniqueID() string {
+	return u.uniqueID
+}
 
 type authHandler struct {
 	next http.Handler
@@ -91,18 +111,23 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Error when trying to get user for %s: %s", provider, err), http.StatusInternalServerError)
 			return
 		}
+
+		chatUser := &chatUser{User: user}
 		//m is a MD5 hashable object which implements the
 		//io.Writer interface (this is why it is valid to use io.WriteString)
 		//once the string is written to the object Sum performs the hashing
 		m := md5.New()
 		io.WriteString(m, strings.ToLower(user.Email()))
-		userID := fmt.Sprintf("%x", m.Sum(nil))
+		chatUser.uniqueID = fmt.Sprintf("%x", m.Sum(nil))
+		avatarURL, err := avatars.GetAvatarURL(chatUser)
+		if err != nil {
+			log.Fatalln("Error when trying to GetAvatarURL", "-", err)
+		}
 
 		authCookieValue := objx.New(map[string]interface{}{
-			"userid":     userID,
+			"userid":     chatUser.uniqueID,
 			"name":       user.Name(),
-			"avatar_url": user.AvatarURL(),
-			"email":      user.Email(),
+			"avatar_url": avatarURL,
 		}).MustBase64()
 
 		http.SetCookie(w, &http.Cookie{

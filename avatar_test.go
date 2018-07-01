@@ -1,11 +1,12 @@
 package main
 
 import (
-	"crypto/md5"
-	"fmt"
-	"io"
-	"strings"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
+
+	gmntest "github.com/stretchr/gomniauth/test"
 )
 
 func TestAuthAvatar(t *testing.T) {
@@ -15,16 +16,19 @@ func TestAuthAvatar(t *testing.T) {
 	//provided that the method doesn't try to access
 	//a field
 	var authAvatar AuthAvatar
-	client := new(client)
-	url, err := authAvatar.GetAvatarURL(client)
+	testUser := &gmntest.TestUser{}
+	testUser.On("AvatarURL").Return("", ErrNoAvatarURL)
+	testChatUser := &chatUser{User: testUser}
+	url, err := authAvatar.GetAvatarURL(testChatUser)
 	if err != ErrNoAvatarURL {
 		t.Error("AuthAvatar should return ErrNoAvatarURL when no value present")
 	}
-
 	//set value
 	testURL := "http://url-to-gravatar/"
-	client.userData = map[string]interface{}{"avatar_url": testURL}
-	url, err = authAvatar.GetAvatarURL(client)
+	testUser = &gmntest.TestUser{}
+	testChatUser.User = testUser
+	testUser.On("AvatarURL").Return(testURL, nil)
+	url, err = authAvatar.GetAvatarURL(testChatUser)
 	if err != nil {
 		t.Error("AuthAvatar.GetAvatarURL should return no error when value present")
 	}
@@ -36,16 +40,29 @@ func TestAuthAvatar(t *testing.T) {
 
 func TestGravatarAvatar(t *testing.T) {
 	var gravatar GravatarAvatar
-	client := new(client)
-	m := md5.New()
-	io.WriteString(m, strings.ToLower("MyEmailAddress@example.com"))
-	userID := fmt.Sprintf("%x", m.Sum(nil))
-	client.userData = map[string]interface{}{"userid": userID}
-	url, err := gravatar.GetAvatarURL(client)
+	user := &chatUser{uniqueID: "abc"}
+	url, err := gravatar.GetAvatarURL(user)
 	if err != nil {
 		t.Error("Gravatar.GetAvatarURL should not return an error")
 	}
 	if url != "//www.gravatar.com/avatar/0bc83cb571cd1c50ba6f3e8a78ef1346" {
 		t.Errorf("GravatarAvatar.GetAvatarURL wrongly returned %s", url)
+	}
+}
+
+func TestFileSystemAvatar(t *testing.T) {
+	var fsGravatar FileSystemAvatar
+	//creating fake avatar file for user "abc"
+	filename := filepath.Join("avatars", "abc.jpg")
+	ioutil.WriteFile(filename, []byte{}, 0777)
+	defer os.Remove(filename)
+
+	user := &chatUser{uniqueID: "abc"}
+	url, err := fsGravatar.GetAvatarURL(client)
+	if err != nil {
+		t.Error("FileSystemAvatar should not return an error")
+	}
+	if url != "/avatars/abc.jpg" {
+		t.Errorf("FileSystemAvatar.GetAvatarURL wrongly returned %s", url)
 	}
 }
